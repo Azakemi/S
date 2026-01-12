@@ -57,7 +57,6 @@
             animation: heartbeat 1.5s infinite ease-in-out;
             z-index: 10;
             transform-origin: center center;
-            /* Ensure smooth scaling */
             will-change: transform;
         }
 
@@ -206,25 +205,27 @@
         // --- THREE.JS SETUP ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000000, 0.02); // Lighter fog so images are clearer
+        // Slightly denser fog for better depth fade
+        scene.fog = new THREE.FogExp2(0x000000, 0.03); 
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 80); // Start further back for the animation
+        camera.position.set(0, 0, 80); 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.outputEncoding = THREE.LinearEncoding; // Brighter colors
+        // Use sRGB for more natural colors
+        renderer.outputEncoding = THREE.sRGBEncoding; 
         container.appendChild(renderer.domElement);
 
-        // --- VISIBILITY FIX: LIGHTING ---
-        // 1. High intensity ambient light to ensure nothing is black
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); 
+        // --- REALISTIC LIGHTING SETUP ---
+        // 1. Soft overall light (reduced intensity so it's not flat)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
         scene.add(ambientLight);
 
-        // 2. Headlamp attached to camera
-        const headLamp = new THREE.DirectionalLight(0xffffff, 1.0);
-        headLamp.position.set(0, 0, 1);
+        // 2. "Headlamp" - A point light attached to the camera.
+        // It casts natural light that falls off with distance.
+        const headLamp = new THREE.PointLight(0xffffff, 1.2, 100);
         camera.add(headLamp); 
         scene.add(camera);    
 
@@ -235,15 +236,16 @@
         const meshes = [];
 
         // TUNNEL CONFIG
-        const tunnelRadius = 8.5; // Wider tunnel so photos don't look "cropped" or too close
+        const tunnelRadius = 8.5; 
         const verticalSpacing = 4.5;
 
         imageFiles.forEach((fileName, i) => {
-            // FIX: Clean URL encoding
             const safeUrl = encodeURIComponent(fileName).replace(/%20/g, " ").replace(/\(/g, "%28").replace(/\)/g, "%29");
 
             textureLoader.load(safeUrl, 
                 (texture) => {
+                    // Ensure texture colors look correct in sRGB
+                    texture.encoding = THREE.sRGBEncoding;
                     const ratio = texture.image.width / texture.image.height;
                     const h = 4.0; 
                     const w = h * ratio;
@@ -252,7 +254,6 @@
                 undefined, 
                 (err) => {
                     console.error("Image load failed:", fileName);
-                    // Fallback grey box if image fails
                     createMesh(5, 4, null, i);
                 }
             );
@@ -261,27 +262,34 @@
         function createMesh(w, h, texture, i) {
             const geometry = new THREE.PlaneGeometry(w, h);
             
-            // VISIBILITY FIX: Use MeshBasicMaterial for the photo. 
-            // It ignores lighting calculations, meaning it will ALWAYS be visible if loaded.
-            const material = new THREE.MeshBasicMaterial({ 
+            // FIX: Use MeshStandardMaterial for REALISTIC lighting response.
+            // We add a tiny bit of emissive glow so they don't look dead dark when far away.
+            const material = new THREE.MeshStandardMaterial({ 
                 map: texture ? texture : null, 
-                color: texture ? 0xffffff : 0x444444,
-                side: THREE.DoubleSide
+                color: 0xffffff,
+                roughness: 0.4, // Matte photo paper look
+                metalness: 0.0,
+                side: THREE.DoubleSide,
+                emissive: 0x333333, // Subtle self-illumination
+                emissiveMap: texture ? texture : null,
+                emissiveIntensity: 0.4 // Low intensity glow
             });
             
-            // FRAME FIX: 
-            // Ensure frame is always slightly larger than the photo
+            // FRAME FIX: Frame also reacts to light now
             const frameGeo = new THREE.PlaneGeometry(w + 0.3, h + 0.3);
-            const frameMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const frameMat = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff,
+                roughness: 0.7,
+                metalness: 0.1
+            });
             const frame = new THREE.Mesh(frameGeo, frameMat);
-            frame.position.z = -0.02; // Just slightly behind
+            frame.position.z = -0.02; 
 
             const meshGroup = new THREE.Group();
             meshGroup.add(new THREE.Mesh(geometry, material));
             meshGroup.add(frame);
 
             // HELIX CALCULATION
-            // 0.7 radians provides good separation
             const angle = i * 0.7; 
             const y = -i * verticalSpacing;
             
@@ -291,7 +299,6 @@
                 Math.sin(angle) * tunnelRadius
             );
 
-            // Store original data for animation
             meshGroup.userData = { 
                 originalY: y, 
                 originalX: meshGroup.position.x,
@@ -308,7 +315,7 @@
         const starCount = 4000;
         const starPos = new Float32Array(starCount * 3);
         for(let i=0; i<starCount*3; i++) {
-            starPos[i] = (Math.random()-0.5) * 200; // Spread stars wider
+            starPos[i] = (Math.random()-0.5) * 200;
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
         const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.1, transparent: true, opacity: 0.8});
@@ -320,7 +327,6 @@
         let targetScrollY = 0;
         const maxScroll = imageFiles.length + 3; 
 
-        // Mouse
         let mouseX = 0; let mouseY = 0;
         let targetMouseX = 0; let targetMouseY = 0;
 
@@ -340,33 +346,23 @@
         function animate() {
             const time = clock.getElapsedTime();
 
-            // Smooth Scroll
             scrollY += (targetScrollY - scrollY) * 0.05;
 
-            // Smooth Mouse
             targetMouseX += (mouseX - targetMouseX) * 0.05;
             targetMouseY += (mouseY - targetMouseY) * 0.05;
 
-            // Camera Movement
             camera.position.y = -scrollY * verticalSpacing;
             
-            // Subtle Tilt
             camera.rotation.x = targetMouseY * 0.03;
             camera.rotation.y = targetMouseX * 0.03;
 
-            // Update Photos
             meshes.forEach(m => {
-                // Bobbing
                 m.position.y = m.userData.originalY + Math.sin(time + m.userData.offset) * 0.1;
-                
-                // CRITICAL: Look straight at the center spine of the tunnel
-                // This ensures they don't look skewed
                 m.lookAt(0, m.position.y, 0); 
             });
             
             stars.rotation.y = time * 0.02;
 
-            // Text Logic
             const progress = scrollY / maxScroll;
             sections.forEach(s => s.classList.remove('active'));
 
@@ -390,50 +386,42 @@
         const music = document.getElementById('bg-music');
 
         intro.addEventListener('click', () => {
-            // 1. Play Audio
             music.volume = 0.6;
             music.play().catch(e => console.log("Audio play blocked"));
 
             intro.style.pointerEvents = 'none';
 
-            // SMOOTH TRANSITION TIMELINE
             const tl = gsap.timeline();
 
-            // Step 1: Fade out text immediately
             tl.to(introText, { opacity: 0, duration: 0.5 });
 
-            // Step 2: Expand Heart massively
             tl.to(heartWrapper, {
                 scale: 80, 
                 duration: 2.5,
                 ease: "power2.in"
             }, "-=0.2");
 
-            // Step 3: Flash White to 100% Opacity (Covering the screen)
             tl.to(whiteFlash, { 
                 opacity: 1, 
                 duration: 1.0, 
                 ease: "power2.in" 
-            }, "-=1.0"); // Start white flash while heart is still zooming
+            }, "-=1.0"); 
 
-            // Step 4: BEHIND THE SCENES - Switch Layers
             tl.add(() => {
-                intro.style.display = 'none'; // Remove heart layer
-                document.getElementById('canvas-container').style.opacity = 1; // Show 3D layer
+                intro.style.display = 'none'; 
+                document.getElementById('canvas-container').style.opacity = 1; 
             });
 
-            // Step 5: Fade Out White Flash + Move Camera
-            // This reveals the 3D scene smoothly
             tl.to(whiteFlash, { 
                 opacity: 0, 
                 duration: 2.0 
             });
 
             tl.to(camera.position, {
-                z: 0, // Move from 80 to 0
+                z: 0, 
                 duration: 3.5,
                 ease: "power2.out"
-            }, "-=2.0"); // Start moving camera as white flash fades out
+            }, "-=2.0"); 
         });
 
         window.addEventListener('resize', () => {
