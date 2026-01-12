@@ -43,7 +43,6 @@
             background: #000; z-index: 100;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             cursor: pointer; overflow: hidden;
-            transition: opacity 1s ease;
         }
 
         /* The glowing atmosphere behind the heart */
@@ -58,6 +57,8 @@
             animation: heartbeat 1.5s infinite ease-in-out;
             z-index: 10;
             transform-origin: center center;
+            /* Ensure smooth scaling */
+            will-change: transform;
         }
 
         /* Gradient & Shadow for 3D feel */
@@ -76,18 +77,22 @@
 
         .intro-text {
             margin-top: 100px; font-family: 'Cinzel'; font-size: 0.8rem; letter-spacing: 0.4em;
-            color: rgba(255,255,255,0.8); z-index: 10;
+            color: rgba(255,255,255,0.8); z-index: 10; pointer-events: none;
+            transition: opacity 0.5s;
         }
 
         @keyframes heartbeat { 0% { transform: scale(1); } 15% { transform: scale(1.15); } 30% { transform: scale(1); } 45% { transform: scale(1.15); } 60% { transform: scale(1); } }
         @keyframes aura-breath { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.2); } }
 
         /* --- 3D CANVAS & TEXT --- */
-        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 1; opacity: 0; transition: opacity 2s ease; }
+        #canvas-container { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh; 
+            z-index: 1; opacity: 0; /* Starts hidden */
+        }
         
         #text-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
-            z-index: 10; pointer-events: none; /* Allows click-through */
+            z-index: 10; pointer-events: none; 
         }
 
         .story-section {
@@ -178,7 +183,9 @@
 
     <script>
         // --- CONFIGURATION ---
-        // Ensure these filenames are EXACT matches.
+        // IMPORTANT: Ensure these filenames match EXACTLY.
+        // If you see black boxes, it is usually because the browser blocks local image loading.
+        // Try running this via a local server (like VS Code "Live Server").
         const imageFiles = [
             "WhatsApp Image 2025-12-27 at 3.28.59 PM.jpeg", "WhatsApp Image 2025-12-27 at 3.29.13 PM.jpeg",
             "WhatsApp Image 2025-12-27 at 3.29.14 PM.jpeg", "WhatsApp Image 2025-12-27 at 3.29.15 PM (1).jpeg",
@@ -199,27 +206,25 @@
         // --- THREE.JS SETUP ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        // Slightly brighter fog to not drown out images
-        scene.fog = new THREE.FogExp2(0x000000, 0.03);
+        scene.fog = new THREE.FogExp2(0x000000, 0.02); // Lighter fog so images are clearer
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // Initial Z is 60, will animate to 0
-        camera.position.set(0, 0, 60);
+        camera.position.set(0, 0, 80); // Start further back for the animation
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        // Use basic linear encoding for brighter textures
-        renderer.outputEncoding = THREE.LinearEncoding;
+        renderer.outputEncoding = THREE.LinearEncoding; // Brighter colors
         container.appendChild(renderer.domElement);
 
-        // --- LIGHTING FIXES ---
-        // 1. Stronger Ambient Light so pictures aren't black
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        // --- VISIBILITY FIX: LIGHTING ---
+        // 1. High intensity ambient light to ensure nothing is black
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); 
         scene.add(ambientLight);
 
-        // 2. Headlamp (attached to camera)
-        const headLamp = new THREE.PointLight(0xffffff, 1.0, 50);
+        // 2. Headlamp attached to camera
+        const headLamp = new THREE.DirectionalLight(0xffffff, 1.0);
+        headLamp.position.set(0, 0, 1);
         camera.add(headLamp); 
         scene.add(camera);    
 
@@ -230,26 +235,24 @@
         const meshes = [];
 
         // TUNNEL CONFIG
-        const tunnelRadius = 7.0; // Slightly tighter radius so images appear closer
-        const verticalSpacing = 4.0;
+        const tunnelRadius = 8.5; // Wider tunnel so photos don't look "cropped" or too close
+        const verticalSpacing = 4.5;
 
         imageFiles.forEach((fileName, i) => {
-            // FIX: Handle Spaces and Parentheses in URLs safely
+            // FIX: Clean URL encoding
             const safeUrl = encodeURIComponent(fileName).replace(/%20/g, " ").replace(/\(/g, "%28").replace(/\)/g, "%29");
 
             textureLoader.load(safeUrl, 
                 (texture) => {
-                    // Success Load
                     const ratio = texture.image.width / texture.image.height;
                     const h = 4.0; 
                     const w = h * ratio;
                     createMesh(w, h, texture, i);
                 },
-                undefined, // Progress
+                undefined, 
                 (err) => {
-                    // Error Load (Console log + create blank placeholder)
-                    console.error("Could not load image:", fileName);
-                    // Create a placeholder mesh so the gallery isn't empty
+                    console.error("Image load failed:", fileName);
+                    // Fallback grey box if image fails
                     createMesh(5, 4, null, i);
                 }
             );
@@ -258,31 +261,28 @@
         function createMesh(w, h, texture, i) {
             const geometry = new THREE.PlaneGeometry(w, h);
             
-            // If texture exists, use it. If not, use dark grey (Safety Color)
-            const material = new THREE.MeshStandardMaterial({ 
+            // VISIBILITY FIX: Use MeshBasicMaterial for the photo. 
+            // It ignores lighting calculations, meaning it will ALWAYS be visible if loaded.
+            const material = new THREE.MeshBasicMaterial({ 
                 map: texture ? texture : null, 
-                color: texture ? 0xffffff : 0x333333,
-                side: THREE.DoubleSide,
-                roughness: 0.3,
-                metalness: 0.0,
-                emissive: texture ? 0xffffff : 0x000000,
-                emissiveMap: texture ? texture : null,
-                emissiveIntensity: 0.3 // Glows slightly so it's always visible
+                color: texture ? 0xffffff : 0x444444,
+                side: THREE.DoubleSide
             });
             
-            // Frame
-            const frame = new THREE.Mesh(
-                new THREE.PlaneGeometry(w + 0.2, h + 0.2),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
-            );
-            frame.position.z = -0.05; // Behind the photo
+            // FRAME FIX: 
+            // Ensure frame is always slightly larger than the photo
+            const frameGeo = new THREE.PlaneGeometry(w + 0.3, h + 0.3);
+            const frameMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            frame.position.z = -0.02; // Just slightly behind
 
             const meshGroup = new THREE.Group();
             meshGroup.add(new THREE.Mesh(geometry, material));
             meshGroup.add(frame);
 
             // HELIX CALCULATION
-            const angle = i * 0.6; // 0.6 radians separation (prevents overlap)
+            // 0.7 radians provides good separation
+            const angle = i * 0.7; 
             const y = -i * verticalSpacing;
             
             meshGroup.position.set(
@@ -305,20 +305,19 @@
 
         // --- STARS ---
         const starGeo = new THREE.BufferGeometry();
-        const starCount = 3000;
+        const starCount = 4000;
         const starPos = new Float32Array(starCount * 3);
         for(let i=0; i<starCount*3; i++) {
-            starPos[i] = (Math.random()-0.5) * 150;
+            starPos[i] = (Math.random()-0.5) * 200; // Spread stars wider
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.08, transparent: true, opacity: 0.6});
+        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.1, transparent: true, opacity: 0.8});
         const stars = new THREE.Points(starGeo, starMat);
         scene.add(stars);
 
         // --- ANIMATION LOOP ---
         let scrollY = 0;
         let targetScrollY = 0;
-        // Calculate max scroll based on items
         const maxScroll = imageFiles.length + 3; 
 
         // Mouse
@@ -348,26 +347,24 @@
             targetMouseX += (mouseX - targetMouseX) * 0.05;
             targetMouseY += (mouseY - targetMouseY) * 0.05;
 
-            // Camera Movement (Vertical Descent)
+            // Camera Movement
             camera.position.y = -scrollY * verticalSpacing;
             
-            // Mouse Interaction (Subtle Tilt)
-            camera.rotation.x = targetMouseY * 0.05;
-            camera.rotation.y = targetMouseX * 0.05;
+            // Subtle Tilt
+            camera.rotation.x = targetMouseY * 0.03;
+            camera.rotation.y = targetMouseX * 0.03;
 
             // Update Photos
             meshes.forEach(m => {
-                // 1. Bobbing
+                // Bobbing
                 m.position.y = m.userData.originalY + Math.sin(time + m.userData.offset) * 0.1;
                 
-                // 2. CRITICAL: Make sure photos look at the camera
-                // We calculate the LookAt based on camera height but 0 X/Z to keep them facing center
-                m.lookAt(0, camera.position.y, 0); 
-                // Alternatively, look straight at camera: m.lookAt(camera.position);
+                // CRITICAL: Look straight at the center spine of the tunnel
+                // This ensures they don't look skewed
+                m.lookAt(0, m.position.y, 0); 
             });
             
-            // Rotate Stars
-            stars.rotation.y = time * 0.03;
+            stars.rotation.y = time * 0.02;
 
             // Text Logic
             const progress = scrollY / maxScroll;
@@ -385,10 +382,11 @@
         }
         animate();
 
-        // --- HEART ZOOM & SMOOTH TRANSITION ---
+        // --- HEART TRANSITION LOGIC ---
         const intro = document.getElementById('intro-layer');
         const heartWrapper = document.querySelector('.heart-wrapper');
         const whiteFlash = document.getElementById('white-flash');
+        const introText = document.querySelector('.intro-text');
         const music = document.getElementById('bg-music');
 
         intro.addEventListener('click', () => {
@@ -398,34 +396,44 @@
 
             intro.style.pointerEvents = 'none';
 
+            // SMOOTH TRANSITION TIMELINE
             const tl = gsap.timeline();
 
-            // A. Expand Heart
+            // Step 1: Fade out text immediately
+            tl.to(introText, { opacity: 0, duration: 0.5 });
+
+            // Step 2: Expand Heart massively
             tl.to(heartWrapper, {
-                scale: 100, // Zoom in massively
-                duration: 2.0,
+                scale: 80, 
+                duration: 2.5,
                 ease: "power2.in"
-            });
+            }, "-=0.2");
 
-            // B. Flash White
-            tl.to(whiteFlash, { opacity: 1, duration: 0.2 }, "-=0.5");
+            // Step 3: Flash White to 100% Opacity (Covering the screen)
+            tl.to(whiteFlash, { 
+                opacity: 1, 
+                duration: 1.0, 
+                ease: "power2.in" 
+            }, "-=1.0"); // Start white flash while heart is still zooming
 
-            // C. Switch Scenes (Hidden logic)
+            // Step 4: BEHIND THE SCENES - Switch Layers
             tl.add(() => {
-                intro.style.display = 'none';
-                document.getElementById('canvas-container').style.opacity = 1;
+                intro.style.display = 'none'; // Remove heart layer
+                document.getElementById('canvas-container').style.opacity = 1; // Show 3D layer
             });
 
-            // D. Fade out white AND Move Camera Simultaneously
-            // This prevents the "Jump" effect. We move camera while screen is fading from white.
-            tl.to(whiteFlash, { opacity: 0, duration: 2.5 });
-            
-            // Move camera from z=60 to z=0 nicely
+            // Step 5: Fade Out White Flash + Move Camera
+            // This reveals the 3D scene smoothly
+            tl.to(whiteFlash, { 
+                opacity: 0, 
+                duration: 2.0 
+            });
+
             tl.to(camera.position, {
-                z: 0,
-                duration: 3.0,
+                z: 0, // Move from 80 to 0
+                duration: 3.5,
                 ease: "power2.out"
-            }, "-=2.5"); // Start this slightly before the white flash ends
+            }, "-=2.0"); // Start moving camera as white flash fades out
         });
 
         window.addEventListener('resize', () => {
