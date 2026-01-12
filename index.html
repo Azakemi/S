@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>For You | Jan 12th</title>
+    <title>For My World | Jan 12th</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -11,95 +11,97 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Montserrat:wght@200;300;400&family=Pinyon+Script&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@200;300;400&family=Pinyon+Script&display=swap" rel="stylesheet">
 
     <style>
-        /* --- CINEMATIC BASE --- */
+        /* --- BASE --- */
         body { 
-            margin: 0; overflow: hidden; background-color: #000; color: white; 
+            margin: 0; overflow: hidden; background-color: #050505; color: white; 
             font-family: 'Montserrat', sans-serif; 
         }
 
-        /* FILM GRAIN OVERLAY (Realism) */
-        .film-grain {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 90; opacity: 0.05;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
-
-        /* VIGNETTE (Cinematic Dark Corners) */
+        /* --- CINEMATIC OVERLAYS --- */
         .vignette {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 80;
-            background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
+            background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,1) 120%);
+        }
+        
+        .noise {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 85; opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
 
-        /* FONTS */
-        .font-cinematic { font-family: 'Cinzel', serif; letter-spacing: 0.15em; text-transform: uppercase; }
-        .font-romantic { font-family: 'Pinyon Script', cursive; color: #ffbfd3; text-shadow: 0 0 15px rgba(255, 107, 157, 0.6); }
+        /* --- TYPOGRAPHY --- */
+        .cinematic { font-family: 'Cinzel', serif; letter-spacing: 0.2em; text-transform: uppercase; text-shadow: 0 0 30px rgba(255,255,255,0.8); }
+        .romantic { font-family: 'Pinyon Script', cursive; color: #ff9eb5; text-shadow: 0 0 20px rgba(255, 107, 157, 1); }
 
-        /* --- HEART INTRO (The Portal) --- */
+        /* --- THE HEART (CINEMATIC LOOK) --- */
         #intro-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
             background: #000; z-index: 100;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             cursor: pointer; overflow: hidden;
-        }
-        
-        /* The glowing aura behind the heart */
-        .heart-glow {
-            position: absolute; width: 1px; height: 1px;
-            box-shadow: 0 0 200px 100px rgba(233, 30, 99, 0.2);
-            border-radius: 50%; animation: pulse-glow 2s infinite;
+            transition: opacity 1s ease;
         }
 
-        .heart-wrapper { 
-            position: relative; width: 120px; height: 120px; 
-            animation: heartbeat 1.5s infinite ease-in-out; 
-            z-index: 10;
+        /* The glowing atmosphere behind the heart */
+        .heart-aura {
+            position: absolute; width: 1px; height: 1px;
+            box-shadow: 0 0 300px 150px rgba(220, 20, 60, 0.4);
+            border-radius: 50%; animation: aura-breath 3s infinite ease-in-out;
         }
-        
+
+        .heart-wrapper {
+            position: relative; width: 140px; height: 140px;
+            animation: heartbeat 1.5s infinite ease-in-out;
+            z-index: 10;
+            transform-origin: center center;
+        }
+
+        /* Gradient & Shadow for 3D feel */
         .heart-shape {
-            width: 100%; height: 100%; background-color: #e91e63;
-            transform: rotate(-45deg); position: absolute;
-            box-shadow: 0 0 40px rgba(233, 30, 99, 0.8);
+            position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle at 30% 30%, #ff5e7e, #a61b36);
+            transform: rotate(-45deg);
+            box-shadow: 0 0 60px rgba(255, 20, 80, 0.8);
         }
         .heart-shape::before, .heart-shape::after {
-            content: ""; width: 100%; height: 100%; background-color: #e91e63;
-            border-radius: 50%; position: absolute;
+            content: ""; position: absolute; width: 100%; height: 100%;
+            background: inherit; border-radius: 50%;
         }
         .heart-shape::before { top: -50%; left: 0; }
         .heart-shape::after { top: 0; left: 50%; }
 
-        .intro-text { 
-            margin-top: 100px; font-family: 'Cinzel'; font-size: 0.8rem; letter-spacing: 0.4em; 
-            color: rgba(255,255,255,0.7); z-index: 10; transition: opacity 0.5s;
+        .intro-text {
+            margin-top: 100px; font-family: 'Cinzel'; font-size: 0.8rem; letter-spacing: 0.4em;
+            color: rgba(255,255,255,0.8); z-index: 10;
         }
 
-        @keyframes heartbeat {
-            0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); }
-        }
-        @keyframes pulse-glow {
-            0% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.5); } 100% { opacity: 0.5; transform: scale(1); }
-        }
+        @keyframes heartbeat { 0% { transform: scale(1); } 15% { transform: scale(1.15); } 30% { transform: scale(1); } 45% { transform: scale(1.15); } 60% { transform: scale(1); } }
+        @keyframes aura-breath { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.2); } }
 
         /* --- 3D CANVAS & TEXT --- */
-        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 1; opacity: 0; }
-        #text-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 10; pointer-events: none; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 1; opacity: 0; transition: opacity 2s ease; }
+        
+        #text-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            z-index: 10; pointer-events: none; /* Allows click-through */
+        }
 
         .story-section {
-            position: absolute; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; transform: scale(0.9) translateY(30px);
-            transition: opacity 1.2s ease, transform 1.2s ease;
-            text-align: center; padding: 20px;
+            opacity: 0; transform: translateY(50px);
+            transition: opacity 1s ease, transform 1s ease;
+            text-align: center;
         }
-        .story-section.active { opacity: 1; transform: scale(1) translateY(0); }
+        .story-section.active { opacity: 1; transform: translateY(0); }
 
-        #progress-line {
-            position: fixed; bottom: 0; left: 0; height: 4px; 
-            background: linear-gradient(90deg, #ff3860, #ffffff);
-            width: 0%; z-index: 50; transition: width 0.1s linear;
+        #white-flash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white;
+            z-index: 200; pointer-events: none; opacity: 0;
         }
     </style>
 </head>
@@ -107,16 +109,16 @@
 
     <audio id="bg-music" loop><source src="song.mp3" type="audio/mpeg"></audio>
 
-    <div class="film-grain"></div>
     <div class="vignette"></div>
-    <div id="progress-line"></div>
+    <div class="noise"></div>
+    <div id="white-flash"></div>
 
     <div id="intro-layer">
-        <div class="heart-glow"></div>
+        <div class="heart-aura"></div>
         <div class="heart-wrapper">
             <div class="heart-shape"></div>
         </div>
-        <div class="intro-text">Click to Begin Our Journey</div>
+        <div class="intro-text">Click to Open My Heart</div>
     </div>
 
     <div id="canvas-container"></div>
@@ -124,56 +126,59 @@
     <div id="text-layer">
         
         <div class="story-section" id="sec-0">
-            <h1 class="font-cinematic text-5xl md:text-7xl mb-4 text-white drop-shadow-lg">I Am Sorry</h1>
-            <p class="text-xl md:text-2xl font-light text-gray-300 max-w-2xl drop-shadow-md">
-                I let the noise drown out the music of us.<br>
-                <span class="font-romantic text-4xl text-pink-400">Forgive me?</span>
+            <h1 class="cinematic text-5xl md:text-7xl mb-6">I Am Sorry</h1>
+            <p class="text-xl md:text-2xl font-light text-gray-200 max-w-2xl px-4 drop-shadow-lg">
+                I lost my way, but my heart never left yours.
+                <br><br>
+                <span class="text-xs text-gray-500 tracking-[0.4em] uppercase">Scroll Down</span>
             </p>
-            <div class="mt-12 text-sm uppercase tracking-[0.5em] text-gray-500 animate-bounce">Scroll Down</div>
         </div>
 
         <div class="story-section" id="sec-1">
-            <h2 class="font-cinematic text-4xl mb-6">The Realization</h2>
-            <p class="text-lg text-gray-200 max-w-xl leading-relaxed">
-                I see it clearly now. The moments I missed. The words I should have said.
-                You are the only thing that matters.
+            <h2 class="cinematic text-3xl md:text-5xl mb-4 text-pink-200">The Realization</h2>
+            <p class="text-lg text-gray-300 max-w-xl px-4 leading-relaxed">
+                When I look at you, the noise of the world fades. 
+                I promise to listen to the music we make, not the noise I create.
             </p>
         </div>
 
         <div class="story-section" id="sec-2">
-            <h1 class="font-romantic text-7xl md:text-9xl mb-4">Forever.</h1>
-            <p class="text-xl font-light">
-                Every picture here is a promise kept.<br>
-                A moment of pure joy.
+            <h1 class="romantic text-7xl md:text-9xl mb-2">Us.</h1>
+            <p class="text-xl font-light text-white">
+                These memories are my life's greatest work.<br>
+                Beautiful. Timeless.
             </p>
         </div>
 
         <div class="story-section" id="sec-3">
-            <p class="font-cinematic text-yellow-500 text-sm tracking-widest mb-2">Upcoming</p>
-            <h1 class="font-cinematic text-7xl md:text-9xl text-white mb-2">Jan 12th</h1>
-            <p class="font-romantic text-4xl md:text-6xl text-gray-300">Our Anniversary</p>
+            <p class="cinematic text-yellow-500 text-sm mb-2">Jan 12th</p>
+            <h1 class="cinematic text-6xl md:text-8xl text-white mb-4">Anniversary</h1>
+            <p class="text-lg text-gray-400 max-w-md px-4">
+                Let this be a new beginning. A restart button pressed with love.
+            </p>
         </div>
 
         <div class="story-section" id="sec-4">
-            <h2 class="font-cinematic text-4xl mb-8">My Vows</h2>
-            <div class="space-y-6 text-2xl font-light text-pink-100">
-                <p>To listen.</p>
-                <p>To understand.</p>
-                <p>To love you, always.</p>
+            <h2 class="cinematic text-4xl mb-8">My Promise</h2>
+            <div class="space-y-4 text-2xl font-light text-pink-100">
+                <p>To cherish your heart.</p>
+                <p>To hold your hand.</p>
+                <p>To stay, forever.</p>
             </div>
         </div>
 
         <div class="story-section" id="sec-5">
-            <h1 class="font-cinematic text-6xl md:text-8xl mb-6">I Love You</h1>
-            <p class="font-romantic text-4xl md:text-6xl text-pink-300">
-                Let's start again.
+            <h1 class="cinematic text-5xl md:text-7xl mb-6">I Love You</h1>
+            <p class="romantic text-4xl md:text-6xl text-white">
+                Please forgive me?
             </p>
         </div>
 
     </div>
 
     <script>
-        // --- 1. IMAGE LIST ---
+        // --- CONFIGURATION ---
+        // Ensure these filenames are EXACT matches.
         const imageFiles = [
             "WhatsApp Image 2025-12-27 at 3.28.59 PM.jpeg", "WhatsApp Image 2025-12-27 at 3.29.13 PM.jpeg",
             "WhatsApp Image 2025-12-27 at 3.29.14 PM.jpeg", "WhatsApp Image 2025-12-27 at 3.29.15 PM (1).jpeg",
@@ -191,93 +196,132 @@
             "WhatsApp Image 2025-12-31 at 2.29.37 PM.jpeg", "WhatsApp Image 2026-01-02 at 12.26.15 AM.jpeg"
         ];
 
-        // --- 2. THREE.JS SETUP ---
+        // --- THREE.JS SETUP ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        // Cinematic Pink/Black fog
-        scene.fog = new THREE.FogExp2(0x050103, 0.025);
+        // Slightly brighter fog to not drown out images
+        scene.fog = new THREE.FogExp2(0x000000, 0.03);
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // Start camera far away for the zoom effect
-        camera.position.set(0, 0, 50); 
+        // Initial Z is 60, will animate to 0
+        camera.position.set(0, 0, 60);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        // Use basic linear encoding for brighter textures
+        renderer.outputEncoding = THREE.LinearEncoding;
         container.appendChild(renderer.domElement);
 
-        // --- 3. GALLERY (THE SNAKE) ---
+        // --- LIGHTING FIXES ---
+        // 1. Stronger Ambient Light so pictures aren't black
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        // 2. Headlamp (attached to camera)
+        const headLamp = new THREE.PointLight(0xffffff, 1.0, 50);
+        camera.add(headLamp); 
+        scene.add(camera);    
+
+        // --- GALLERY SETUP ---
         const group = new THREE.Group();
         scene.add(group);
         const textureLoader = new THREE.TextureLoader();
         const meshes = [];
 
-        const verticalSpacing = 4.5; 
-        const curveRadius = 6.0;
+        // TUNNEL CONFIG
+        const tunnelRadius = 7.0; // Slightly tighter radius so images appear closer
+        const verticalSpacing = 4.0;
 
         imageFiles.forEach((fileName, i) => {
+            // FIX: Handle Spaces and Parentheses in URLs safely
             const safeUrl = encodeURIComponent(fileName).replace(/%20/g, " ").replace(/\(/g, "%28").replace(/\)/g, "%29");
 
-            textureLoader.load(safeUrl, (texture) => {
-                const ratio = texture.image.width / texture.image.height;
-                const h = 5.0; // Big photos
-                const w = h * ratio;
+            textureLoader.load(safeUrl, 
+                (texture) => {
+                    // Success Load
+                    const ratio = texture.image.width / texture.image.height;
+                    const h = 4.0; 
+                    const w = h * ratio;
+                    createMesh(w, h, texture, i);
+                },
+                undefined, // Progress
+                (err) => {
+                    // Error Load (Console log + create blank placeholder)
+                    console.error("Could not load image:", fileName);
+                    // Create a placeholder mesh so the gallery isn't empty
+                    createMesh(5, 4, null, i);
+                }
+            );
+        });
 
-                // MeshBasicMaterial ensures HIGH VISIBILITY regardless of lighting
-                const geometry = new THREE.PlaneGeometry(w, h);
-                const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-                
-                // Add a white frame
-                const frameGeo = new THREE.PlaneGeometry(w + 0.3, h + 0.3);
-                const frameMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                const frame = new THREE.Mesh(frameGeo, frameMat);
-                frame.position.z = -0.05;
-
-                const meshGroup = new THREE.Group();
-                meshGroup.add(new THREE.Mesh(geometry, material));
-                meshGroup.add(frame);
-
-                // SNAKE POSITIONING
-                const y = -i * verticalSpacing;
-                const x = Math.sin(i * 0.5) * curveRadius;
-                const z = Math.cos(i * 0.3) * (curveRadius * 0.5) - 5;
-
-                meshGroup.position.set(x, y, z);
-                meshGroup.lookAt(0, y, 0); // Face the path
-                meshGroup.rotation.z = (Math.random() - 0.5) * 0.3; // Tilt
-
-                meshGroup.userData = { originalY: y, offset: Math.random() * Math.PI };
-                
-                group.add(meshGroup);
-                meshes.push(meshGroup);
+        function createMesh(w, h, texture, i) {
+            const geometry = new THREE.PlaneGeometry(w, h);
+            
+            // If texture exists, use it. If not, use dark grey (Safety Color)
+            const material = new THREE.MeshStandardMaterial({ 
+                map: texture ? texture : null, 
+                color: texture ? 0xffffff : 0x333333,
+                side: THREE.DoubleSide,
+                roughness: 0.3,
+                metalness: 0.0,
+                emissive: texture ? 0xffffff : 0x000000,
+                emissiveMap: texture ? texture : null,
+                emissiveIntensity: 0.3 // Glows slightly so it's always visible
             });
-        });
+            
+            // Frame
+            const frame = new THREE.Mesh(
+                new THREE.PlaneGeometry(w + 0.2, h + 0.2),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            frame.position.z = -0.05; // Behind the photo
 
-        // --- 4. PARTICLES (Stars & Petals) ---
-        const particlesGeo = new THREE.BufferGeometry();
-        const particleCount = 2000;
-        const posArray = new Float32Array(particleCount * 3);
-        
-        for(let i=0; i<particleCount*3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 100;
+            const meshGroup = new THREE.Group();
+            meshGroup.add(new THREE.Mesh(geometry, material));
+            meshGroup.add(frame);
+
+            // HELIX CALCULATION
+            const angle = i * 0.6; // 0.6 radians separation (prevents overlap)
+            const y = -i * verticalSpacing;
+            
+            meshGroup.position.set(
+                Math.cos(angle) * tunnelRadius,
+                y,
+                Math.sin(angle) * tunnelRadius
+            );
+
+            // Store original data for animation
+            meshGroup.userData = { 
+                originalY: y, 
+                originalX: meshGroup.position.x,
+                originalZ: meshGroup.position.z,
+                offset: Math.random() * Math.PI 
+            };
+            
+            group.add(meshGroup);
+            meshes.push(meshGroup);
         }
-        
-        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        // Pinkish tint for romance
-        const particlesMat = new THREE.PointsMaterial({
-            size: 0.07, color: 0xffb7c5, transparent: true, opacity: 0.6
-        });
-        const particlesMesh = new THREE.Points(particlesGeo, particlesMat);
-        scene.add(particlesMesh);
 
-        // --- 5. LOGIC & ANIMATION ---
+        // --- STARS ---
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 3000;
+        const starPos = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount*3; i++) {
+            starPos[i] = (Math.random()-0.5) * 150;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.08, transparent: true, opacity: 0.6});
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // --- ANIMATION LOOP ---
         let scrollY = 0;
         let targetScrollY = 0;
-        const maxScroll = imageFiles.length + 5; 
-        const sections = document.querySelectorAll('.story-section');
-        const progressBar = document.getElementById('progress-line');
+        // Calculate max scroll based on items
+        const maxScroll = imageFiles.length + 3; 
 
-        // Mouse Parallax
+        // Mouse
         let mouseX = 0; let mouseY = 0;
         let targetMouseX = 0; let targetMouseY = 0;
 
@@ -292,6 +336,7 @@
         });
 
         const clock = new THREE.Clock();
+        const sections = document.querySelectorAll('.story-section');
 
         function animate() {
             const time = clock.getElapsedTime();
@@ -299,25 +344,33 @@
             // Smooth Scroll
             scrollY += (targetScrollY - scrollY) * 0.05;
 
-            // Mouse Damping
+            // Smooth Mouse
             targetMouseX += (mouseX - targetMouseX) * 0.05;
             targetMouseY += (mouseY - targetMouseY) * 0.05;
 
-            // Camera Motion
+            // Camera Movement (Vertical Descent)
             camera.position.y = -scrollY * verticalSpacing;
             
-            // Interactive Tilt
-            camera.rotation.x = targetMouseY * 0.03;
-            camera.rotation.y = targetMouseX * 0.03;
+            // Mouse Interaction (Subtle Tilt)
+            camera.rotation.x = targetMouseY * 0.05;
+            camera.rotation.y = targetMouseX * 0.05;
+
+            // Update Photos
+            meshes.forEach(m => {
+                // 1. Bobbing
+                m.position.y = m.userData.originalY + Math.sin(time + m.userData.offset) * 0.1;
+                
+                // 2. CRITICAL: Make sure photos look at the camera
+                // We calculate the LookAt based on camera height but 0 X/Z to keep them facing center
+                m.lookAt(0, camera.position.y, 0); 
+                // Alternatively, look straight at camera: m.lookAt(camera.position);
+            });
             
-            // Particles Rotation
-            particlesMesh.rotation.y = time * 0.02;
+            // Rotate Stars
+            stars.rotation.y = time * 0.03;
 
-            // Progress Bar
+            // Text Logic
             const progress = scrollY / maxScroll;
-            progressBar.style.width = `${Math.min(progress * 100, 100)}%`;
-
-            // Section Visibility Logic
             sections.forEach(s => s.classList.remove('active'));
 
             if (progress < 0.10) document.getElementById('sec-0').classList.add('active');
@@ -327,58 +380,54 @@
             else if (progress > 0.75 && progress < 0.85) document.getElementById('sec-4').classList.add('active');
             else if (progress > 0.90) document.getElementById('sec-5').classList.add('active');
 
-            // Float Animation
-            meshes.forEach(m => {
-                m.position.y = m.userData.originalY + Math.sin(time + m.userData.offset) * 0.1;
-            });
-
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
         animate();
 
-        // --- 6. THE HEART "PORTAL" TRANSITION ---
+        // --- HEART ZOOM & SMOOTH TRANSITION ---
         const intro = document.getElementById('intro-layer');
         const heartWrapper = document.querySelector('.heart-wrapper');
-        const introText = document.querySelector('.intro-text');
+        const whiteFlash = document.getElementById('white-flash');
         const music = document.getElementById('bg-music');
 
         intro.addEventListener('click', () => {
-            // 1. Play Music
+            // 1. Play Audio
             music.volume = 0.6;
-            music.play().catch(e => console.log("Audio prevented"));
+            music.play().catch(e => console.log("Audio play blocked"));
+
+            intro.style.pointerEvents = 'none';
 
             const tl = gsap.timeline();
 
-            // 2. Fade out text immediately
-            tl.to(introText, { opacity: 0, duration: 0.5 });
-
-            // 3. The "Portal" Zoom - Scale Heart HUGE
+            // A. Expand Heart
             tl.to(heartWrapper, {
-                scale: 250, // Massive scale to simulate going inside
-                duration: 3,
-                ease: "power4.in",
-            }, "-=0.2");
+                scale: 100, // Zoom in massively
+                duration: 2.0,
+                ease: "power2.in"
+            });
 
-            // 4. Fade in the 3D Canvas *during* the zoom (Creating the blend)
-            tl.to(document.getElementById('canvas-container'), { opacity: 1, duration: 2 }, "-=1.5");
+            // B. Flash White
+            tl.to(whiteFlash, { opacity: 1, duration: 0.2 }, "-=0.5");
 
-            // 5. Fly the Camera IN from Z=50 to Z=5 (Simulate speed)
+            // C. Switch Scenes (Hidden logic)
+            tl.add(() => {
+                intro.style.display = 'none';
+                document.getElementById('canvas-container').style.opacity = 1;
+            });
+
+            // D. Fade out white AND Move Camera Simultaneously
+            // This prevents the "Jump" effect. We move camera while screen is fading from white.
+            tl.to(whiteFlash, { opacity: 0, duration: 2.5 });
+            
+            // Move camera from z=60 to z=0 nicely
             tl.to(camera.position, {
-                z: 5,
-                duration: 4,
+                z: 0,
+                duration: 3.0,
                 ease: "power2.out"
-            }, "-=3");
-
-            // 6. Finally, hide the intro layer completely
-            tl.to(intro, { 
-                opacity: 0, 
-                duration: 0.5, 
-                onComplete: () => intro.style.display = 'none' 
-            }, "-=0.5");
+            }, "-=2.5"); // Start this slightly before the white flash ends
         });
 
-        // Resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
