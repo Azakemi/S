@@ -203,7 +203,6 @@
         scene.fog = new THREE.FogExp2(0x000000, 0.035); 
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // Start camera moved back on Z
         camera.position.set(0, 0, 40); 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -215,7 +214,6 @@
         // --- LIGHTING ---
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); 
         scene.add(ambientLight);
-        // Headlamp now points forward along -Z but we add it to camera so it moves with us
         const headLamp = new THREE.PointLight(0xffffff, 1.0, 100);
         camera.add(headLamp); 
         scene.add(camera);    
@@ -226,9 +224,8 @@
         const textureLoader = new THREE.TextureLoader();
         const meshes = [];
 
-        // --- SLIDESHOW / SPREAD CONFIG ---
-        // We move Horizontally (X axis) now.
-        const horizontalSpacing = 7.0; // Widescreen feel
+        // --- HORIZONTAL SPREAD CONFIG ---
+        const horizontalSpacing = 7.0; 
         
         imageFiles.forEach((fileName, i) => {
             const safeUrl = encodeURIComponent(fileName).replace(/%20/g, " ").replace(/\(/g, "%28").replace(/\)/g, "%29");
@@ -236,7 +233,6 @@
                 (texture) => {
                     texture.encoding = THREE.sRGBEncoding;
                     const ratio = texture.image.width / texture.image.height;
-                    // Slightly larger size for slideshow impact
                     createMesh(5.0 * ratio, 5.0, texture, i);
                 },
                 undefined, 
@@ -257,28 +253,18 @@
             meshGroup.add(new THREE.Mesh(geometry, material));
             meshGroup.add(frame);
 
-            // --- SPREAD LAYOUT ---
-            // 1. Move along X axis (Timeline)
+            // --- PLACEMENT ---
             const x = i * horizontalSpacing; 
-            
-            // 2. Randomize Y (Spread Vertically) to fill screen
-            // Range +/- 6.0 covers most of vertical view at Z=15
-            const y = (Math.random() - 0.5) * 7.0; 
-
-            // 3. Randomize Z (Depth) slightly
-            // So they pass by at different depths, creating parallax
-            const z = (Math.random() - 0.5) * 5.0; 
+            // Spread vertically but keep them relatively centered so they are always seen
+            const y = (Math.random() - 0.5) * 4.0; 
+            const z = (Math.random() - 0.5) * 4.0; 
             
             meshGroup.position.set(x, y, z);
 
-            // --- FLOATING DATA ---
             meshGroup.userData = { 
                 originalY: y, originalX: x, originalZ: z,
-                timeOffset: Math.random() * Math.PI * 2,
-                rotSpeedX: (Math.random() - 0.5) * 0.0015,
-                rotSpeedY: (Math.random() - 0.5) * 0.002,
-                rotSpeedZ: (Math.random() - 0.5) * 0.001,
-                driftSpeed: (Math.random() * 0.5) + 0.5
+                // Only bobbing offset, no rotation speed
+                timeOffset: Math.random() * Math.PI * 2
             };
             
             group.add(meshGroup);
@@ -286,11 +272,9 @@
         }
 
         // --- STARS ---
-        // Make the star field wider to accommodate horizontal travel
         const starGeo = new THREE.BufferGeometry();
         const starPos = new Float32Array(5000 * 3);
         for(let i=0; i<5000*3; i++) {
-            // Spread stars widely on X axis
             starPos[i] = (Math.random()-0.5) * 400; 
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
@@ -320,28 +304,31 @@
             targetMouseX += (mouseX - targetMouseX) * 0.05;
             targetMouseY += (mouseY - targetMouseY) * 0.05;
 
-            // --- CAMERA MOVEMENT ---
-            // Move Camera horizontally along X
+            // Move Camera horizontally
             camera.position.x = scrollY * horizontalSpacing;
             
-            // Subtle tilt toward mouse
-            camera.rotation.x = targetMouseY * 0.03;
-            camera.rotation.y = targetMouseX * 0.03;
-
-            // --- FLOATING ANIMATION ---
+            // --- STRICT UPRIGHT LOGIC ---
             meshes.forEach(m => {
                 const ud = m.userData;
-                m.position.y = ud.originalY + Math.sin(time * ud.driftSpeed + ud.timeOffset) * 0.3; // Increased bobbing
-                m.position.x = ud.originalX + Math.cos(time * ud.driftSpeed * 0.5 + ud.timeOffset) * 0.2;
-                // No Z drift changes to keep depth order stable relative to camera pass-by
+                
+                // 1. Bob Up/Down (Floating effect without spinning)
+                m.position.y = ud.originalY + Math.sin(time + ud.timeOffset) * 0.15;
+                
+                // 2. PARALLAX EFFECT (Based on Mouse)
+                // Position shifts slightly based on mouse interaction
+                // This makes it feel like the mouse is influencing the space
+                m.position.x = ud.originalX + (targetMouseX * 0.5); 
+                m.position.z = ud.originalZ + (targetMouseY * 0.5);
 
-                // Gentle Tumble
-                m.rotation.x += ud.rotSpeedX;
-                m.rotation.y += ud.rotSpeedY;
-                m.rotation.z += ud.rotSpeedZ;
+                // 3. TILT EFFECT (Look at Mouse)
+                // Instead of spinning, we tilt the photos VERY slightly toward the mouse
+                // This keeps them upright but interactive.
+                m.rotation.x = -targetMouseY * 0.1; // Tilt up/down
+                m.rotation.y = targetMouseX * 0.1;  // Tilt left/right
+                m.rotation.z = 0; // STRICTLY NO TOPPLING
             });
             
-            stars.rotation.x = time * 0.005; // Gentle rotation of sky
+            stars.rotation.x = time * 0.005; 
 
             const progress = scrollY / maxScroll;
             sections.forEach(s => s.classList.remove('active'));
@@ -374,7 +361,6 @@
             tl.to(whiteFlash, { opacity: 1, duration: 1.0, ease: "power2.in" }, "-=1.0"); 
             tl.add(() => { intro.style.display = 'none'; document.getElementById('canvas-container').style.opacity = 1; });
             tl.to(whiteFlash, { opacity: 0, duration: 2.0 });
-            // Move Camera into position (Z = 15)
             tl.to(camera.position, { z: 15, duration: 3.5, ease: "power2.out" }, "-=2.0"); 
         });
 
