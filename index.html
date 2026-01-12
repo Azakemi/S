@@ -182,9 +182,6 @@
 
     <script>
         // --- CONFIGURATION ---
-        // IMPORTANT: Ensure these filenames match EXACTLY.
-        // If you see black boxes, it is usually because the browser blocks local image loading.
-        // Try running this via a local server (like VS Code "Live Server").
         const imageFiles = [
             "WhatsApp Image 2025-12-27 at 3.28.59 PM.jpeg", "WhatsApp Image 2025-12-27 at 3.29.13 PM.jpeg",
             "WhatsApp Image 2025-12-27 at 3.29.14 PM.jpeg", "WhatsApp Image 2025-12-27 at 3.29.15 PM (1).jpeg",
@@ -205,27 +202,23 @@
         // --- THREE.JS SETUP ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        // Slightly denser fog for better depth fade
-        scene.fog = new THREE.FogExp2(0x000000, 0.03); 
+        scene.fog = new THREE.FogExp2(0x000000, 0.035); 
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 80); 
+        camera.position.set(0, 0, 40); // Initial camera Z
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        // Use sRGB for more natural colors
         renderer.outputEncoding = THREE.sRGBEncoding; 
         container.appendChild(renderer.domElement);
 
         // --- REALISTIC LIGHTING SETUP ---
-        // 1. Soft overall light (reduced intensity so it's not flat)
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); 
         scene.add(ambientLight);
 
-        // 2. "Headlamp" - A point light attached to the camera.
-        // It casts natural light that falls off with distance.
-        const headLamp = new THREE.PointLight(0xffffff, 1.2, 100);
+        // Headlamp
+        const headLamp = new THREE.PointLight(0xffffff, 1.0, 100);
         camera.add(headLamp); 
         scene.add(camera);    
 
@@ -235,26 +228,25 @@
         const textureLoader = new THREE.TextureLoader();
         const meshes = [];
 
-        // TUNNEL CONFIG
-        const tunnelRadius = 8.5; 
-        const verticalSpacing = 4.5;
+        // LAYOUT CONFIG - The "Gentle Wave"
+        const verticalSpacing = 6.0; // More space between photos
+        const waveAmplitude = 3.5;   // How far left/right they go (kept within screen bounds)
 
         imageFiles.forEach((fileName, i) => {
             const safeUrl = encodeURIComponent(fileName).replace(/%20/g, " ").replace(/\(/g, "%28").replace(/\)/g, "%29");
 
             textureLoader.load(safeUrl, 
                 (texture) => {
-                    // Ensure texture colors look correct in sRGB
                     texture.encoding = THREE.sRGBEncoding;
                     const ratio = texture.image.width / texture.image.height;
-                    const h = 4.0; 
-                    const w = h * ratio;
+                    const h = 4.5; // Fixed height
+                    const w = h * ratio; // Proportional width
                     createMesh(w, h, texture, i);
                 },
                 undefined, 
                 (err) => {
                     console.error("Image load failed:", fileName);
-                    createMesh(5, 4, null, i);
+                    createMesh(5, 4.5, null, i);
                 }
             );
         });
@@ -262,20 +254,19 @@
         function createMesh(w, h, texture, i) {
             const geometry = new THREE.PlaneGeometry(w, h);
             
-            // FIX: Use MeshStandardMaterial for REALISTIC lighting response.
-            // We add a tiny bit of emissive glow so they don't look dead dark when far away.
+            // Material: Realistic but with slight glow
             const material = new THREE.MeshStandardMaterial({ 
                 map: texture ? texture : null, 
                 color: 0xffffff,
-                roughness: 0.4, // Matte photo paper look
+                roughness: 0.4, 
                 metalness: 0.0,
                 side: THREE.DoubleSide,
-                emissive: 0x333333, // Subtle self-illumination
+                emissive: 0x222222,
                 emissiveMap: texture ? texture : null,
-                emissiveIntensity: 0.4 // Low intensity glow
+                emissiveIntensity: 0.2
             });
             
-            // FRAME FIX: Frame also reacts to light now
+            // Frame
             const frameGeo = new THREE.PlaneGeometry(w + 0.3, h + 0.3);
             const frameMat = new THREE.MeshStandardMaterial({ 
                 color: 0xffffff,
@@ -283,26 +274,32 @@
                 metalness: 0.1
             });
             const frame = new THREE.Mesh(frameGeo, frameMat);
-            frame.position.z = -0.02; 
+            frame.position.z = -0.05; 
 
             const meshGroup = new THREE.Group();
             meshGroup.add(new THREE.Mesh(geometry, material));
             meshGroup.add(frame);
 
-            // HELIX CALCULATION
-            const angle = i * 0.7; 
-            const y = -i * verticalSpacing;
+            // --- ORIENTATION FIX: GENTLE WAVE ---
+            // Instead of a spiral, we use a Sine Wave on the X axis.
+            // Z stays roughly flat or gently curves back and forth.
             
-            meshGroup.position.set(
-                Math.cos(angle) * tunnelRadius,
-                y,
-                Math.sin(angle) * tunnelRadius
-            );
+            const y = -i * verticalSpacing;
+            const x = Math.sin(i * 0.5) * waveAmplitude; 
+            const z = Math.cos(i * 0.5) * 1.5; // Very shallow depth wave
+            
+            meshGroup.position.set(x, y, z);
+
+            // NO ROTATION: We do NOT use lookAt(center).
+            // This keeps them strictly facing the screen (0,0,1).
+            // We just add a tiny random tilt for realism, but keep them upright.
+            meshGroup.rotation.z = (Math.random() - 0.5) * 0.1; 
+            meshGroup.rotation.y = (Math.random() - 0.5) * 0.1;
 
             meshGroup.userData = { 
                 originalY: y, 
-                originalX: meshGroup.position.x,
-                originalZ: meshGroup.position.z,
+                originalX: x,
+                originalZ: z,
                 offset: Math.random() * Math.PI 
             };
             
@@ -327,6 +324,7 @@
         let targetScrollY = 0;
         const maxScroll = imageFiles.length + 3; 
 
+        // Mouse
         let mouseX = 0; let mouseY = 0;
         let targetMouseX = 0; let targetMouseY = 0;
 
@@ -351,18 +349,22 @@
             targetMouseX += (mouseX - targetMouseX) * 0.05;
             targetMouseY += (mouseY - targetMouseY) * 0.05;
 
+            // Camera Movement - Simple Vertical Descent
             camera.position.y = -scrollY * verticalSpacing;
             
-            camera.rotation.x = targetMouseY * 0.03;
-            camera.rotation.y = targetMouseX * 0.03;
+            // Subtle Camera Tilt based on mouse
+            camera.rotation.x = targetMouseY * 0.02;
+            camera.rotation.y = targetMouseX * 0.02;
 
             meshes.forEach(m => {
-                m.position.y = m.userData.originalY + Math.sin(time + m.userData.offset) * 0.1;
-                m.lookAt(0, m.position.y, 0); 
+                // Gentle Floating
+                m.position.y = m.userData.originalY + Math.sin(time + m.userData.offset) * 0.05;
+                // No lookAt here needed because we want them flat.
             });
             
-            stars.rotation.y = time * 0.02;
+            stars.rotation.y = time * 0.01;
 
+            // Text Logic
             const progress = scrollY / maxScroll;
             sections.forEach(s => s.classList.remove('active'));
 
@@ -401,24 +403,18 @@
                 ease: "power2.in"
             }, "-=0.2");
 
-            tl.to(whiteFlash, { 
-                opacity: 1, 
-                duration: 1.0, 
-                ease: "power2.in" 
-            }, "-=1.0"); 
+            tl.to(whiteFlash, { opacity: 1, duration: 1.0, ease: "power2.in" }, "-=1.0"); 
 
             tl.add(() => {
                 intro.style.display = 'none'; 
                 document.getElementById('canvas-container').style.opacity = 1; 
             });
 
-            tl.to(whiteFlash, { 
-                opacity: 0, 
-                duration: 2.0 
-            });
+            tl.to(whiteFlash, { opacity: 0, duration: 2.0 });
 
+            // Camera Move: Zoom in from Z=40 to Z=15 (Comfortable viewing distance)
             tl.to(camera.position, {
-                z: 0, 
+                z: 15, 
                 duration: 3.5,
                 ease: "power2.out"
             }, "-=2.0"); 
